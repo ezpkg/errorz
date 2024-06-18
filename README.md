@@ -15,12 +15,12 @@ Package errorz provides functions for dealing with errors, with stacktrace, vali
 ## Installation
 
 ```sh
-go get -u ezpkg.io/errorz@v0.0.5
+go get -u ezpkg.io/errorz@v0.0.6
 ```
 
 ## Examples
 
-#### Must
+### Must
 
 ```go
 data := errorz.Must(os.ReadFile(path))
@@ -29,7 +29,7 @@ fmt.Printf("%s", data)
 errorz.MustZ(os.WriteFile(path, data, 0644))
 ```
 
-#### Stacktrace
+### Stacktrace
 
 ```go
 err := fmt.Errorf("foo")
@@ -51,14 +51,14 @@ fmt.Printf("%#v\n", zErr)
 // testing/testing.go:7890 · tRunner
 ```
 
-**No stacktrace:**
+#### No stacktrace
 
 ```go
 zErr := errorz.NoStack().New("no stack")
 fmt.Printf("%+v", zErr)
 ```
 
-#### Multi-errors
+### Multi-errors
 
 ```go
 var err error
@@ -70,6 +70,14 @@ var err2 error
 err2 = errorz.Append(err2, err)
 fmt.Printf("%+v", err2)
 ```
+
+## Similar Packages
+
+- [github.com/pkg/errors](https://pkg.go.dev/github.com/pkg/errors)
+- [github.com/hashicorp/go-multierror](https://github.com/hashicorp/go-multierror)
+- [github.com/uber-go/multierr](https://github.com/uber-go/multierr)
+- [tailscale.com/util/multierr](https://pkg.go.dev/tailscale.com/util/multierr)
+- [sigs.k8s.io/cli-utils/pkg/multierror](https://pkg.go.dev/sigs.k8s.io/cli-utils/pkg/multierror)
 
 ## About ezpkg.io
 
