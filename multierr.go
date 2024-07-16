@@ -14,6 +14,19 @@ var _ stacktracez.StackTracerZ = (*zErrors)(nil)
 type Errors interface {
 	error
 	Errors() []error
+	Unwrap() []error
+	stacktracez.StackTracerZ
+}
+
+func ToErrors(err error) Errors {
+	switch err0 := err.(type) {
+	case nil:
+		return nil
+	case Errors:
+		return err0
+	default:
+		return Append(err0).(Errors)
+	}
 }
 
 func Append(err0 error, errs ...error) error {
@@ -69,28 +82,28 @@ func Validate(condition bool, msgArgs ...any) error {
 	if condition {
 		return nil
 	}
-	return New(formatValidate(msgArgs))
+	return CallersSkip(1).New(formatValidate(msgArgs))
 }
 
 func Validatef(condition bool, msg string, args ...any) error {
 	if condition {
 		return nil
 	}
-	return Newf(msg, args...)
+	return CallersSkip(1).Newf(msg, args...)
 }
 
 func ValidateX[T any](value T, condition bool, msgArgs ...any) (T, error) {
 	if condition {
 		return value, nil
 	}
-	return value, New(formatValidate(msgArgs))
+	return value, CallersSkip(1).New(formatValidate(msgArgs))
 }
 
 func ValidateXf[T any](value T, condition bool, msgArgs ...any) (T, error) {
 	if condition {
 		return value, nil
 	}
-	return value, New(formatValidate(msgArgs))
+	return value, CallersSkip(1).New(formatValidate(msgArgs))
 }
 
 func MustValidate(condition bool, msgArgs ...any) {
@@ -237,6 +250,13 @@ func (es *zErrors) Errors() []error {
 	return es.errors[:len(es.errors)]
 }
 
+func (es *zErrors) Unwrap() []error {
+	if es == nil {
+		return nil
+	}
+	return es.Errors()
+}
+
 func (es *zErrors) StackTraceZ() *stacktracez.Frames {
 	if es == nil {
 		return nil
@@ -246,27 +266,33 @@ func (es *zErrors) StackTraceZ() *stacktracez.Frames {
 
 func (es *zErrors) Append(errs ...error) {
 	for _, err := range errs {
-		switch err := err.(type) {
+		switch err0 := err.(type) {
 		case nil:
 			// continue
 		case *zErrors:
-			if err != nil {
-				es.errors = append(es.errors, err.errors...)
+			if err0 != nil {
+				es.errors = append(es.errors, err0.errors...)
+			}
+		case interface{ Unwrap() []error }:
+			if err0 != nil {
+				es.errors = append(es.errors, err0.Unwrap()...)
 			}
 		case interface{ Errors() []error }:
 			// uber-go/multierr, tailscale.com/util/multierr
-			if err != nil {
-				es.errors = append(es.errors, err.Errors()...)
+			if err0 != nil {
+				es.errors = append(es.errors, err0.Errors()...)
 			}
 		case interface{ WrappedErrors() []error }:
 			// hashicorp/go-multierror
-			if err != nil {
-				es.errors = append(es.errors, err.WrappedErrors()...)
+			if err0 != nil {
+				es.errors = append(es.errors, err0.WrappedErrors()...)
 			}
 		default:
-			if !reflect.ValueOf(err).IsNil() {
-				es.errors = append(es.errors, err)
+			v := reflect.ValueOf(err)
+			if v.IsValid() && v.Kind() == reflect.Ptr && v.IsNil() {
+				continue
 			}
+			es.errors = append(es.errors, err)
 		}
 	}
 }
